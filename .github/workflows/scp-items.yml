@@ -1,0 +1,69 @@
+name: Crawl SCP Wiki
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  update-main-scp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout Crawler"
+        uses: actions/checkout@v6
+
+      - name: "Clone API Repository"
+        uses: actions/checkout@v6
+        with:
+          repository: SCP-JP-Crawler/scp-jp-api
+          path: scp-jp-api
+
+      - name: "Setup Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: "Install Crawler"
+        run: make install
+
+      - name: "Crawl Titles"
+        run: make data/scp_titles.json
+
+      - name: "Crawl Hubs"
+        run: make data/scp_hubs.json
+
+      - name: "Crawl Items"
+        run: make data/scp_items.json
+
+      - name: "Process Items"
+        run: make data/processed/items
+
+      - name: "Crawl Tales"
+        run: make data/scp_tales.json
+
+      - name: "Process Tales"
+        run: make data/processed/tales
+
+      - name: "Crawl GOI"
+        run: make data/goi.json
+
+      - name: "Process GOI"
+        run: make data/processed/goi
+
+      - name: "Move Files into API"
+        run: cp -Rf ./data/processed/* ./scp-jp-api/docs/data/scp/
+
+      - name: "Push"
+        shell: bash
+        run: >
+          cd scp-jp-api;
+          ./bin/push.sh;
+
+        env:
+          GIT_USER: ${{ vars.GIT_USER_NAME }}
+          GIT_EMAIL: ${{ vars.GIT_USER_EMAIL }}
