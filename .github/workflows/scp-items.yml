@@ -62,6 +62,7 @@ jobs:
         shell: bash
         run: >
           cd scp-jp-api;
+          chmod +x./bin/push.sh
           ./bin/push.sh;
 
         env:
