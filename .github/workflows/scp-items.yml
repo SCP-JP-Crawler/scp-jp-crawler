@@ -63,9 +63,9 @@ jobs:
         shell: bash
         working-directory: scp-jp-api
         run: |
+          echo "USER=$GIT_USER / EMAIL=$GIT_EMAIL"
           chmod +x ./bin/push.sh
           ./bin/push.sh
-
         env:
-          GIT_USER: ${{ vars.GIT_NAME }}
+          GIT_USER: ${{ vars.GIT_USER }}
           GIT_EMAIL: ${{ vars.GIT_EMAIL }}
