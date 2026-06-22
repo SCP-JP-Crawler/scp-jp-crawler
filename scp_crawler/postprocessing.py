@@ -1,3 +1,4 @@
+import gzip
 import html
 import json
 import os
@@ -33,9 +34,11 @@ def from_file(path):
 
 
 def to_file(obj, path):
-    with open(path, "w") as fs:
-        print(f"Saving data to {path}")
-        json.dump(obj, fs, sort_keys=True, default=json_serial)
+    if str(path).endswith(".json"):
+        path = str(path) + ".gz"
+    print(f"Saving data to {path}")
+    with gzip.open(path, "wt", encoding="utf-8") as fs:
+        json.dump(obj, fs, sort_keys=True, default=json_serial, ensure_ascii=False)
 
 
 def get_images(html):
@@ -179,12 +182,15 @@ def run_postproc_items():
 
     item_files = {}
     series_index = {}
-    for series, series_items in series_items.items():
-        filename = f"content_{series}.json"
-        series_index[series] = filename
-        to_file(series_items, processed_path / filename)
-        for item_key, item_value in series_items.items():
-            item_files[item_value["link"]] = filename
+    for series, items_dict in series_items.items():
+        item_list = list(items_dict.items())
+        for i in range(0, len(item_list), 200):
+            chunk = dict(item_list[i:i+200])
+            filename = f"content_{series}_{i//200}.json.gz"
+            series_index.setdefault(series, []).append(filename)
+            to_file(chunk, processed_path / filename)
+            for key, val in chunk.items():
+                item_files[val["link"]] = filename
 
     to_file(series_index, processed_path / "content_index.json")
 
@@ -233,17 +239,24 @@ def run_postproc_tales():
         tale_years[tale["year"]][tale["link"]] = tale
 
     year_index = {}
-    for year in tale_years:
-        filename = processed_path / f"content_{year}.json"
-        year_index[year] = filename
-        to_file(tale_years[year], filename)
+    for year, tales_in_year in tale_years.items():
+        tale_list = list(tales_in_year.items())
+        for i in range(0, len(tale_list), 500):
+            chunk = dict(tale_list[i:i+500])
+            suffix = f"{year}_{i//500}" if year == "unknown" else str(year)
+            filename = f"content_{suffix}.json.gz"
+            year_index.setdefault(year, []).append(filename)
+            to_file(chunk, processed_path / filename)
     to_file(year_index, processed_path / f"content_index.json")
 
-    for tale_id in tales:
-        del tales[tale_id]["raw_content"]
-        del tales[tale_id]["raw_source"]
-        year = tales[tale_id]["year"]
-        tales[tale_id]["content_file"] = f"content_{year}.json"
+    # 253行の後で
+    for tale_id, tale in tales.items():
+        del tale["raw_content"]
+        del tale["raw_source"]
+        year = tale["year"]
+        for fname in year_index.get(year, []):
+            tale["content_file"] = fname
+            break
 
     to_file(tales, processed_path / "index.json")
 
