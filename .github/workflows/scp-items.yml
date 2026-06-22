@@ -67,5 +67,5 @@ jobs:
           ./bin/push.sh
 
         env:
-          GIT_USER: ${{ vars.GIT_USER_NAME }}
-          GIT_EMAIL: ${{ vars.GIT_USER_EMAIL }}
+          GIT_USER: ${{ vars.GIT_NAME }}
+          GIT_EMAIL: ${{ vars.GIT_EMAIL }}
